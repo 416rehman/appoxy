@@ -14,13 +14,14 @@ Appoxy is a PaaS that is built with the following principles in mind:
 - **Open Source**: Appoxy is built with open source technologies and is open source itself.
 - **Simple**: Operating Appoxy and deploying applications on it should be simple and intuitive.
 
-## Features
+## Tasks to be done
 Appoxy is a work in progress. The following features are planned:
 - [x] 1-Script server provisioning
 - [x] Buildpacks for deploying applications
-- [ ] Deploy applications via git
-- [ ] Frontend client for users to manage their applications
-- [ ] Frontend client for admins to manage the platform
+- [ ] Droid-Server Interface (DSI) - an API for managing apps on a server
+- [ ] Droid Administration Microservice (DAMS) - a microservice for managing servers
+- [ ] Frontend client for users to manage their applications, and for admins to manage the platform
+- [ ] Backend for the frontend client, including a database and a microservice for managing users
 
 ## How it works
 
