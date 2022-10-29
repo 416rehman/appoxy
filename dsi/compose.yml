@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  droid-server:
+# The droid-server is a docker in docker container that includes kpack and exposes the docker socket
+    image: ubuntu
+    container_name: ubuntu_provisioning_test
+    hostname: ubuntu_provisioning_test
+    restart: always
+    privileged: true
+    volumes:
+      - ./provision.sh:/provision.sh
+    command: /provision.sh
