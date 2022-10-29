@@ -250,6 +250,7 @@ provision_dsi() {
   echo "${GREEN}Provisioning Droid Server Installer...${NC}"
 
   # TODO: Provision DSI
+  # When DSI feature is complete, implement this function
 
   echo "${GREEN}Droid Server Installer Provisioning Complete${NC}"
 }
