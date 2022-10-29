@@ -250,7 +250,6 @@ provision_dsi() {
   echo "${GREEN}Provisioning Droid Server Installer...${NC}"
 
   # TODO: Provision DSI
-  # When DSI feature is complete, implement this function
   # This function should install DSI and configure it to run on startup so the DSI is accessible on port 8000
 
   echo "${GREEN}Droid Server Installer Provisioning Complete${NC}"
