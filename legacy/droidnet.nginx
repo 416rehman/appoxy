@@ -1,0 +1,7 @@
+server {
+    server_name server_name ~^(?<subdomain>.+)\.localhost$ ~^(?<subdomain>.+)\.appoxy\.com$;
+    location / {
+        proxy_pass http://$subdomain:16880;
+        resolver 127.0.0.11;
+    }
+}

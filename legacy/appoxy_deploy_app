@@ -1,0 +1,212 @@
+#!/usr/bin/env sh
+
+Help(){
+  echo "Usage: $0 [options]"
+  echo "Options:"
+  echo "  -g <git_repo_url>    URL of the git repo to clone"
+  echo "  -t <app_type>        Type of app. (Options: node, frontend, static)"
+  echo "  -p <port>            Port the app runs on. Defaults to the PORT environment variable. (node)"
+  echo "  -n <app_name>        Name of the app. Defaults to the repo name."
+  echo "  -r <root_dir>        Root directory to run the commands in. Defaults to the uppermost directory in the repo."
+  echo "  -b <build_command>   Command to build the app, i.e. npm run build. (node, frontend)"
+  echo "  -s <start_command>   Command to start the app. i.e. npm start. (node)"
+  echo "  -d <publish_dir>     Directory to publish the app from. Must be relative to the root_dir. Defaults to the root_dir. (frontend, static)"
+  echo "  -e <env_vars_file>   Environment variables file override. This is a newline separated file containing environment variables in the format KEY=VALUE."
+  echo "                         - First environment variables are loaded from a '.env' file (if exists) in the root directory, then from the file specified by this option."
+  echo "                         - If the same key is present in both files, the value from the file specified by this option will be used."
+  echo "  -h                   Print this help message."
+  echo "  -f                   Follow the logs of the docker container after starting it."
+  echo "  -v                   Verbose output."
+  echo ""
+  echo "Example: Deploy a NodeJS API that listens on port 3000"
+  echo "  $0 https://github.com/username/repo -t node -p 3000 -s 'npm start'"
+  echo ""
+  echo "Example: Deploy a React app that is built with 'npm run build' and served from the 'build' directory"
+  echo "  $0 https://github.com/username/repo -t frontend -b 'npm run build' -d build"
+  echo ""
+  echo "Example: Deploy a static website that is served from the 'public' directory"
+  echo "  $0 https://github.com/username/repo -t static -d public"
+}
+
+
+# Get the repo url and options
+while getopts ":g:t:p:n:r:d:b:s:e:h:f:v" option; do
+  case $option in
+  g) # Git repo url
+    APX_GITHUB_REPO_URL=$OPTARG
+    ;;
+  t) # App type
+    APX_APP_TYPE=$OPTARG
+    ;;
+  p) # App port
+    APX_PORT_OVERRIDE=$OPTARG
+    ;;
+  n) # App name
+    APX_APP_NAME=$OPTARG
+    ;;
+  r) # Root Directory to run the commands in
+    APX_ROOT_DIR=$OPTARG
+    ;;
+  d) # Build directory
+    APX_PUBLISH_DIR=$OPTARG
+    ;;
+  b) # Build Command
+    APX_BUILD_COMMAND=$OPTARG
+    ;;
+  s) # Start Command
+    APX_START_COMMAND=$OPTARG
+    ;;
+  e) # Environment variables overridefile
+    APX_ENV_VARS_FILE=$OPTARG
+    ;;
+  f) # Follow logs
+    FOLLOW_LOGS=true
+    ;;
+  v) # Verbose output
+    VERBOSE=true
+    ;;
+  \? | h | *) # Display Help
+    Help
+    exit
+    ;;
+  esac
+done
+
+if [ $# -eq 0 ]; then
+  Help
+  exit
+fi
+
+
+DefaultVars(){
+  # Default values
+  APX_APP_NAME=${APX_APP_NAME:-$(basename $APX_GITHUB_REPO_URL | cut -d. -f1)}
+  # Replace dots with dashes and make it lowercase
+  APX_APP_NAME=$(echo $APX_APP_NAME | sed 's/\./-/g' | tr '[:upper:]' '[:lower:]')
+  APX_ROOT_DIR=${APX_ROOT_DIR:-.}
+  APX_PUBLISH_DIR=${APX_PUBLISH_DIR:-.}
+}
+
+# Run init_app.sh
+InitApp(){
+  if [ "$VERBOSE" = true ]; then
+    echo "Running init_app.sh"
+  fi
+  # Check if init_app.sh exists
+  if [ -f "./scripts/init_app.sh" ]; then
+    APP_INFO=$(./scripts/init_app.sh -g $APX_GITHUB_REPO_URL -n $APX_APP_NAME)
+    APX_APP_ID=$(echo $APP_INFO | tail -n 1 | cut -d'|' -f1)
+    APX_APP_DIR=$(echo $APP_INFO | tail -n 1 | cut -d'|' -f3)
+  fi
+}
+
+# Run configure_app.sh
+ConfigureApp(){
+  if [ "$VERBOSE" = true ]; then
+      echo "Running configure_app.sh"
+  fi
+
+  # Check if configure_app.sh exists
+  if [ -f "./scripts/configure_app.sh" ]; then
+    commandString="./scripts/configure_app.sh -i $APX_APP_ID -n $APX_APP_NAME -r $APX_ROOT_DIR -d $APX_PUBLISH_DIR"
+    if [ -n "$APX_BUILD_COMMAND" ]; then
+      commandString="$commandString -b \"$APX_BUILD_COMMAND\""
+    fi
+    if [ -n "$APX_START_COMMAND" ]; then
+      commandString="$commandString -s \"$APX_START_COMMAND\""
+    fi
+    if [ -n "$APX_ENV_VARS_FILE" ]; then
+      commandString="$commandString -e $APX_ENV_VARS_FILE"
+    fi
+    if [ -n "$APX_PORT_OVERRIDE" ]; then
+      commandString="$commandString -p $APX_PORT_OVERRIDE"
+    fi
+    if [ -n "$APX_APP_TYPE" ]; then
+      commandString="$commandString -t $APX_APP_TYPE"
+    fi
+    if [ "$VERBOSE" = true ]; then
+      commandString="$commandString -v"
+      echo "Running: $commandString"
+    fi
+
+    sh -c "$commandString"
+
+    if [ $? -ne 0 ]; then
+      echo "Error: configure_app.sh failed"
+      exit 1
+    fi
+
+  fi
+}
+
+# Run deploy_app.sh
+DeployApp(){
+  if [ "$VERBOSE" = true ]; then
+    echo "Running deploy_app.sh"
+  fi
+
+  # Check if deploy_app.sh exists
+  if [ -f "./scripts/deploy_app.sh" ]; then
+#    if FOLLOW_LOGS is true, then run deploy_app.sh with -f
+    if [ "$APX_FOLLOW_LOGS" = true ]; then
+      OUTPUT=$(sh ./scripts/deploy_app.sh $APX_APP_ID -f)
+    else
+      OUTPUT=$(sh ./scripts/deploy_app.sh $APX_APP_ID)
+    fi
+    CONTAINER_ID=$(echo $OUTPUT | awk -F: '{print $NF}')
+  fi
+}
+
+PrintVars(){
+  echo "APX_PORT_OVERRIDE: $APX_PORT_OVERRIDE"
+  echo "APX_APP_NAME: $APX_APP_NAME"
+  echo "APX_ROOT_DIR: $APX_ROOT_DIR"
+  echo "APX_PUBLISH_DIR: $APX_PUBLISH_DIR"
+  echo "APX_BUILD_COMMAND: $APX_BUILD_COMMAND"
+  echo "APX_START_COMMAND: $APX_START_COMMAND"
+  echo "APX_ENV_VARS_FILE: $APX_ENV_VARS_FILE"
+  echo "APX_GITHUB_REPO_URL: $APX_GITHUB_REPO_URL"
+  echo "APX_APP_ID: $APX_APP_ID"
+  echo "APX_APP_DIR: $APX_APP_DIR"
+  echo "CONTAINER_ID: $CONTAINER_ID"
+}
+
+# Load Configuration File
+LoadAppoxyConfig() {
+  if [ -f appoxy.conf ]; then
+    . ./appoxy.conf
+  else
+    DefaultConfig
+    . ./appoxy.conf
+  fi
+}
+
+Main(){
+  DefaultVars
+  InitApp
+  ConfigureApp
+  DeployApp
+  if [ "$VERBOSE" = true ]; then
+    PrintVars
+  fi
+  LoadAppoxyConfig
+  echo "✅ App deployed successfully."
+  echo "App ID: $APX_APP_ID"
+  echo "App Name: $APX_APP_NAME"
+  echo "App Directory: $APX_APP_DIR"
+  echo "Container ID: $CONTAINER_ID"
+  if [ -z "$PUBLIC_DOMAINS" ]; then
+    PUBLIC_DOMAINS="localhost"
+  fi
+#PUBLIC_DOMAINS is a colon separated list of domains like "localhost:appoxy.com"
+  for domain in $(echo $PUBLIC_DOMAINS | tr ":" "\n") ; do
+    PUBLIC_URLS="$PUBLIC_URLS http://$APX_APP_NAME.$domain"
+  done
+  echo "Public URL(s): $PUBLIC_URLS"
+
+  if [ "$FOLLOW_LOGS" = true ]; then
+    docker logs -f $CONTAINER_ID
+  fi
+}
+
+Main
