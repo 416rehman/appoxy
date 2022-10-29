@@ -1,6 +1,6 @@
-# Droid Administration MicroService (DAMS)
+# Droid-Server Interface (DSI)
 
-This interface provides an API for managing droids by issuing commands to docker daemons of the droid-servers.
+This interface provides an API for managing droids on a server.
 
 ## Functionalities
 
@@ -8,3 +8,4 @@ This interface provides an API for managing droids by issuing commands to docker
 - Start/Stop/Restart droids
 - Get droid logs
 - Get droid status
+- Schedule snoozing of droids
