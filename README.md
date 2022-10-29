@@ -32,6 +32,7 @@ Users deploy their applications from the frontend client. The frontend client co
 App Management Operation Flow (Destroying an application)
 
 </div>
+
 ### Public Internet Access
 
 Appoxy uses a Global Nginx Proxy (or many proxies in scalable configuration) to intercept requests from the public internet and route them to the correct droid-server. Each droid-server has a local Nginx Proxy that routes requests to the correct application.
