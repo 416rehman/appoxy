@@ -45,3 +45,7 @@ I.e A request to 'https://myapp.appoxy.com' is intercepted by the Global Nginx P
 ![](docs/public_access.png)
 Visitor Accessing an Application
 </div>
+
+### Final Architecture
+
+![](docs/architecture.png)
