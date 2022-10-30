@@ -1,4 +1,5 @@
 use rocket::serde::{Deserialize, Serialize};
+use crate::services::detect_common_stacks;
 
 #[derive(Debug)]
 #[derive(Deserialize)]
@@ -10,4 +11,10 @@ pub struct Droid {
     branch: String,
     buildpacks: Vec<String>,
     env: Vec<String>,
+}
+
+impl Droid {
+    pub async fn detect_common_stacks(&self) -> Result<Vec<String>, String> {
+        detect_common_stacks(&self.buildpacks).await
+    }
 }

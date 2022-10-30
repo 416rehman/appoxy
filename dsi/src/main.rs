@@ -1,7 +1,7 @@
 #[macro_use] extern crate rocket;
 
+mod services;
 mod controllers;
-mod config;
 mod models;
 
 #[get("/")]
@@ -11,5 +11,5 @@ fn index() -> &'static str {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, controllers::droid_router::new])
+    rocket::build().mount("/", routes![index, controllers::droids_router::new, controllers::stacks_router::common])
 }
