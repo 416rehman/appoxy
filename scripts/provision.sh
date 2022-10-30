@@ -9,7 +9,8 @@ help() {
   echo "  -d, --domain        comma-separated list of domains that will be used by apps. i.e if domain is set to 'myhost.com', then the apps will be available at 'app.myhost.com'"
   echo "  -v, --verbose       verbose output"
 }
-
+YELLOW='\033[43m'
+BLUE='\033[44m'
 GREEN='\033[42m'
 RED='\033[41m'
 NC='\033[0m' # No Color
@@ -65,74 +66,77 @@ get_init() {
 
 
 update_ubuntu() {
-  verbose "${GREEN}Updating Ubuntu...${NC}"
+  verbose "${YELLOW}Provisioning Ubuntu...${NC}"
+  verbose "${BLUE}Updating Ubuntu...${NC}"
   apt-get update
   apt-get upgrade -y
 
-  verbose "${GREEN}Installing dependencies...${NC}"
+  verbose "${BLUE}Installing dependencies...${NC}"
   apt-get install -y git curl wget software-properties-common
+
+  verbose "${GREEN}Ubuntu provisioning completed.${NC}"
 }
 
 provision_git() {
-  verbose "${GREEN}Installing Git...${NC}"
+  verbose "${YELLOW}Provisioning Git...${NC}"
   if ! command -v git; then
-    verbose "${GREEN}Installing Git...${NC}"
+    verbose "${BLUE}Installing Git...${NC}"
     apt-get install git -y
   fi
-  verbose "${GREEN}Git installed${NC}"
+  verbose "${BLUE} Git installed. ${NC}"
 
-  verbose "${GREEN}Configuring Git...${NC}"
+  verbose "${BLUE}Configuring Git...${NC}"
   git config --global user.name "droid-server"
   git config --global user.email "droid-server@localhost"
-  verbose "${GREEN}Git configured${NC}"
 
-  verbose "${GREEN}Generating SSH key...${NC}"
+  verbose "${GREEN}Git provisioning completed.${NC}"
+
 }
 
 provision_docker() {
-  verbose "${GREEN}Installing Docker...${NC}"
+  verbose "${YELLOW}Provisioning Docker...${NC}"
   if ! command -v docker; then
-    verbose "${GREEN}Installing Docker...${NC}"
+    verbose "${BLUE}Installing Docker...${NC}"
     apt-get install \
       ca-certificates \
       curl \
       gnupg \
       lsb-release -y
 
-    verbose "${GREEN}Adding Docker's official GPG key...${NC}"
+    verbose "${BLUE}Adding Docker's official GPG key...${NC}"
     yes | mkdir -p /etc/apt/keyrings
     yes | curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg --yes
 
-    verbose "${GREEN}Setting up the stable repository...${NC}"
+    verbose "${BLUE}Setting up the stable repository...${NC}"
     echo \
       "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
           $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null
 
-    verbose "${GREEN}Updating the apt package index...${NC}"
+    verbose "${BLUE}Updating the apt package index...${NC}"
     chmod a+r /etc/apt/keyrings/docker.gpg
     apt-get update -y
 
     # Install the latest version of Docker Engine and containerd
     apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
   fi
-  verbose "${GREEN}Docker installed${NC}"
+  verbose "${BLUE}Docker installed${NC}"
 
-  verbose "${GREEN}Configuring Docker...${NC}"
+  verbose "${BLUE}Configuring Docker...${NC}"
   # if docker group does not exist, create it
   if ! getent group docker; then
-    verbose "${GREEN}Creating docker group...${NC}"
+    verbose "${BLUE}Creating docker group.${NC}"
     groupadd docker
   fi
 
   # if $USER is not set, set it to the current user
   if [ -z "$USER" ]; then
-    verbose "Setting USER to current user"
+    verbose "${BLUE}Setting USER to current user.${NC}"
     USER=$(whoami)
   fi
 
   # if user environment variable is not in docker group, add it
   if ! id -nG "$USER" | grep -qw "docker"; then
-    verbose "Adding $USER to docker group"
+    verbose "${BLUE}Adding $USER to docker group.${NC}"
     usermod -aG docker "$USER"
   fi
 
@@ -154,35 +158,38 @@ provision_docker() {
 
   # Create the droid-net network
   docker network create droid-net
-  verbose "Docker Network ${GREEN}droid-net${NC} created"
+  verbose "Docker Network ${BLUE}droid-net${NC} created"
 
-  verbose "${GREEN}Docker configured${NC}"
+  verbose "${GREEN}Docker provisioning completed.${NC}"
 }
 
 provision_nginx() {
-  verbose "${GREEN}Provisioning Nginx...${NC}"
+  verbose "${YELLOW}Provisioning Nginx...${NC}"
   if ! command -v nginx; then
-    verbose "Installing Nginx"
+    verbose "${BLUE}Installing Nginx...${NC}"
     apt-get install nginx -y
   fi
 
   if ! command -v nginx; then
-    echo "Failed to install Nginx. Please install Nginx manually and try again."
+    echo "${RED}Error: Nginx installation failed. Exiting...${NC}"
     exit 1
   fi
-  verbose "${GREEN}Nginx installed${NC}"
+  verbose "${BLUE}Nginx installed${NC}"
 
-  verbose "${GREEN}Configuring Nginx...${NC}"
+  verbose "${BLUE}Configuring Nginx...${NC}"
   rm /etc/nginx/sites-enabled/default
   rm /etc/nginx/sites-available/default
 
+  verbose "${BLUE}Parsing domains...${NC}"
   # Seperate domains by space
   domains=$(echo "$DOMAIN" | tr -d '[:space:]' | tr ',' ' ')
   server_names=""
   for dom in $domains; do
     server_names="$server_names ~^(?<app_id>.+)\.$dom$"
   done
+  verbose "${BLUE}Parsed server_name: $server_names${NC}"
 
+  verbose "${BLUE}Generating Nginx config file.${NC}"
   # Create Nginx config file that redirects requests to app_id
   tee /etc/nginx/sites-available/droid-server <<EOF
 server {
@@ -202,6 +209,7 @@ EOF
 }
 EOF
 
+  verbose "${BLUE}Enabling Nginx config file.${NC}"
   # Enable Nginx config file
   ln -s /etc/nginx/sites-available/droid-server /etc/nginx/sites-enabled/droid-server
 
@@ -220,13 +228,13 @@ EOF
     rc-service nginx restart
   fi
 
-  verbose "${GREEN}Nginx configured${NC}"
+  verbose "${GREEN}Nginx provisioning completed.${NC}"
 }
 
 provision_pack() {
   verbose "${GREEN}Provisioning pack...${NC}"
   if ! command pack version; then
-    verbose "Installing Pack"
+    verbose "${BLUE}Installing pack...${NC}"
 
     # Add Pack's official GPG key
     add-apt-repository ppa:cncf-buildpacks/pack-cli -y
@@ -237,6 +245,7 @@ provision_pack() {
     # Install the latest version of Pack
     apt-get install pack-cli -y
   fi
+  verbose "${BLUE}Pack installed${NC}"
 
   if ! command pack version; then
     echo -e "${RED}Failed to install Pack. Please install Pack manually and try again.${NC}"
@@ -247,11 +256,19 @@ provision_pack() {
 }
 
 provision_dsi() {
-  echo "${GREEN}Provisioning Droid Server Installer...${NC}"
+  echo "${YELLOW}Provisioning Droid Server Installer...${NC}"
 
   # TODO: Provision DSI
 
-  echo "${GREEN}Droid Server Installer Provisioning Complete${NC}"
+  echo "${GREEN}DSI provisioning completed.${NC}"
+}
+
+create_apps_dir() {
+  verbose "${YELLOW}Creating /apps directory...${NC}"
+  if [ ! -d /apps ]; then
+    mkdir /apps
+  fi
+  verbose "${GREEN}/apps directory created${NC}"
 }
 
 main() {
@@ -289,6 +306,11 @@ main() {
 
   if ! provision_dsi; then
     echo "Failed to provision DSI" >&2
+    exit 1
+  fi
+
+  if ! create_apps_dir; then
+    echo "Failed to create /apps directory" >&2
     exit 1
   fi
 
