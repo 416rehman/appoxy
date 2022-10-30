@@ -1,5 +1,5 @@
 use rocket::serde::{Deserialize, Serialize};
-use crate::services::detect_common_stacks;
+use crate::utility::stack::detect_common_stacks;
 
 #[derive(Debug)]
 #[derive(Deserialize)]
