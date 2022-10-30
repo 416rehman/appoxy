@@ -1,9 +1,7 @@
 use rocket::serde::{Deserialize, Serialize};
 use crate::utility::stack::detect_common_stacks;
 
-#[derive(Debug)]
-#[derive(Deserialize)]
-#[derive(Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct Droid {
     app_id: i64,
