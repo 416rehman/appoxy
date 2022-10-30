@@ -46,6 +46,20 @@ I.e A request to 'https://myapp.appoxy.com' is intercepted by the Global Nginx P
 Visitor Accessing an Application
 </div>
 
+### Inside a Droid-Server
+A droid-server is a server that can be provisioned by the `provision.sh` script. The script installs docker, docker-compose, pack, DSI, and starts an nginx container. The script also creates a docker network called `droid-net` and attaches it to the nginx container. The nginx container is responsible for routing requests to the droid containers.
+
+The operation workflow of a droid-server can be seen in the following diagram:
+![](docs/droid-server.png)
+
+
+
+The Droid-Server Interface workflow can be seen in the BLUE steps in the diagram. The DSI clones the repository, detects a compatible stack, and creates a builder. It then creates an image using `pack` and runs the image using `docker`. The resulting container (referred to as a droid) is then attached the `droid-net` docker network so that it can communicate with the nginx container. Finally, the image is deleted to save disk space.
+
+The Nginx Proxy workflow can be seen in the GREEN steps in the diagram. The Nginx Proxy is responsible for routing requests to the correct droid container. It does this by using the unique internal id of the application to match it with the correct container. If the requested url is `7d6g824.ds1.appoxy.com` (the user visits `myapp.appoxy.com` which is intercepted by the Global Nginx Proxy, and replaces the name `myapp` with the uid `7d6g824` and the droid-server the app is located on `ds1`), if the app does not exist, a 404 error is returned. Otherwise, if the app is snoozing, the app is woken up. The app is then scheduled to be snoozed after 30 minutes, and the request is routed to the app.
+
+
+
 ### Final Architecture
 
 ![](docs/architecture.png)
