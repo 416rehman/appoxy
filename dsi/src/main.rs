@@ -1,8 +1,8 @@
 #[macro_use] extern crate rocket;
 
+#[cfg(test)] mod integration_tests;
 mod routers;
 mod models;
-mod integration_tests;
 mod utility;
 
 #[get("/")]
