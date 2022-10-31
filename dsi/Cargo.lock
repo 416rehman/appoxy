@@ -663,7 +663,9 @@ dependencies = [
  "regex",
  "reqwest",
  "rocket",
+ "tokio",
  "tokio-test",
+ "toml",
 ]
 
 [[package]]
