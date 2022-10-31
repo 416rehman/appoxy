@@ -17,7 +17,7 @@ fn index() -> &'static str {
 /// Streams the output of a command as a response.
 /// Use "curl -N" to stream the output.
 #[get("/stream")]
-fn hello() -> io::Result<ReaderStream![BufReader<tokio::process::ChildStdout>]> {
+fn stream() -> io::Result<ReaderStream![BufReader<tokio::process::ChildStdout>]> {
     let stdout = tokio::process::Command::new("ls")
         .arg("-la")
         .stdout(std::process::Stdio::piped())
@@ -32,5 +32,5 @@ fn hello() -> io::Result<ReaderStream![BufReader<tokio::process::ChildStdout>]> 
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, routers::droids_router::new, routers::stacks_router::common, sleep, hello])
+    rocket::build().mount("/", routes![index, routers::droids_router::new, routers::stacks_router::common, hello])
 }
