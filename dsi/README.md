@@ -28,6 +28,8 @@ runs the image using `docker`. The resulting container (referred to as a droid) 
 network so that it can communicate with the nginx container. The nginx container is responsible for routing requests to
 the droid containers.
 
+Note: PORT is a special environment variable used by Appoxy to determine which port to route requests to. If PORT is not set, there will be no way for the nginx container to route requests to the droid container.
+
 ### Logs
 
 There is a special type of log called a buildlog. The retrieval strategy for buildlogs is different from the retrieval strategy for droid logs.
