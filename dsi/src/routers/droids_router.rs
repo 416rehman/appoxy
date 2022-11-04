@@ -2,7 +2,7 @@ use rocket::http::Status;
 use rocket::response::status;
 use rocket::serde::json::{Json, Value};
 use rocket::serde::json::serde_json::json;
-use crate::models::droid_model::Droid;
+use crate::models::droid::Droid;
 
 #[post("/droids", data = "<droid>")]
 pub async fn new(droid: Json<Droid>) -> status::Custom<Value> {

@@ -1,60 +1,20 @@
 use std::fs::File;
 use std::io::Write;
 use rocket::serde::{Deserialize, Serialize};
+use crate::models::buildpack::Buildpack;
+use crate::models::order::Order;
+use crate::models::stack::Stack;
 
+// https://buildpacks.io/docs/reference/config/builder-config
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(crate = "rocket::serde")]
 pub struct Builder {
-    pub description: String,
+    pub description: Option<String>,
     pub stack: Stack,
-    pub lifecycle: Lifecycle,
     pub buildpacks: Vec<Buildpack>,
     pub order: Vec<Order>,
 }
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(crate = "rocket::serde")]
-pub struct Stack {
-    pub id: String,
-    #[serde(rename = "build-image")]
-    pub build_image: String,
-    #[serde(rename = "run-image")]
-    pub run_image: String,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(crate = "rocket::serde")]
-pub struct Lifecycle {
-    pub version: String,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(crate = "rocket::serde")]
-pub struct Buildpack {
-    pub id: Option<String>,
-    pub uri: String,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(crate = "rocket::serde")]
-pub struct Order {
-    pub group: Vec<Group>,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(crate = "rocket::serde")]
-pub struct Group {
-    pub id: String,
-    pub version: String,
-    pub optional: Option<bool>,
-}
-
 
 impl Builder {
     pub fn save(&self, app_id: &str) -> Result<(), Box<dyn std::error::Error>> {
