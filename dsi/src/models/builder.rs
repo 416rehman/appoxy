@@ -17,11 +17,13 @@ pub struct Builder {
 }
 
 impl Builder {
-    pub fn save(&self, app_id: &str) -> Result<(), Box<dyn std::error::Error>> {
-        // dump this builder to /app/<app_id>/builder.toml, if it exists already, overwrite it
-        let mut file = File::create(format!("/app/{}/builder.toml", app_id))?;
+    /// Creates a builder.toml file and returns the path to the file
+    pub fn save(&self, app_id: String) -> Result<(String), Box<dyn std::error::Error>> {
+        let save_path = format!("./dumps/{}/builder.toml", app_id);
+        std::fs::create_dir_all(format!("./dumps/{}", app_id))?;
+        let mut file = File::create(&save_path)?;
         file.write_all(toml::to_string(self)?.as_bytes())?;
-        Ok(())
+        Ok(save_path)
     }
 
     // Runs "pack builder create <app_id>:<stack.id> --config /app/<app_id>/builder.toml" and return handle to the process

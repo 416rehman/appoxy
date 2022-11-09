@@ -4,7 +4,7 @@ use rocket::serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 #[serde(crate = "rocket::serde")]
 pub struct Group {
-    pub id: String,
+    pub id: Option<String>,
     pub optional: Option<bool>,
 }
 

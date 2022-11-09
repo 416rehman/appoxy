@@ -8,12 +8,12 @@ use crate::models::stack::Stack;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct Droid {
-    app_id: i64,
+    pub app_id: i64,
     repo: String,
     branch: String,
     buildpacks: Vec<Buildpack>,
     env: Vec<String>,
-    stack: Stack,
+    pub stack: Stack, // Stack to be used for the builder, use the detect_common_stacks function to find a compatible stack for the buildpacks
 }
 
 impl Droid {
@@ -28,7 +28,7 @@ impl Droid {
             description: Some("Created by Droid".to_string()),
             order: self.buildpacks.iter().map(|buildpack| Order{
                 group: vec![Group {
-                    id: buildpack.id.clone().unwrap(),
+                    id: buildpack.id.clone(),
                     optional: buildpack.optional
                 }]
             }).collect::<Vec<Order>>()

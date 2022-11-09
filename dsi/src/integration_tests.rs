@@ -10,7 +10,7 @@ fn droid_creation() {
 
     let client = Client::tracked(rocket()).expect("valid rocket instance");
     let response = client.post(uri!(super::routers::droids_router::new))
-        .body(r#"{ "app_id": 1, "repo": "github.com/rocket", "branch": "main", "buildpacks": ["heroku/nodejs"], "env": ["FOO=bar", "BAZ=qux"] }"#)
+        .body(r#"{"app_id": 1,"repo": "github.com/rocket","branch": "main","buildpacks": [{"uri": "heroku/nodejs"}],"env": ["FOO=bar", "BAZ=qux"],"stack": {"id": "heroku-18","build_image": "heroku/buildpacks:20","run_image": "heroku/pack:20"}}"#)
     .dispatch();
     assert_eq!(response.status(), Status::Ok);
 
@@ -25,7 +25,7 @@ fn common_stack_detection() {
 
     let client = Client::tracked(rocket()).expect("valid rocket instance");
     let response = client.post(uri!(super::routers::stacks_router::common))
-        .body(r#"["heroku/nodejs", "heroku/ruby", "paketo-buildpacks/java"]"#)
+        .body(r#"[{"uri": "heroku/nodejs"}, {"uri":"heroku/ruby"}, {"uri":"paketo-buildpacks/java"}]"#)
     .dispatch();
     assert_eq!(response.status(), Status::Ok);
 
