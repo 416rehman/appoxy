@@ -5,7 +5,7 @@ use rocket::serde::json::serde_json::json;
 use crate::models::droid::Droid;
 
 #[post("/droids", data = "<droid>")]
-pub async fn new(droid: Json<Droid>) -> status::Custom<Value> {
+pub async fn new(mut droid: Json<Droid>) -> status::Custom<Value> {
     match droid.detect_common_stacks().await {
         Ok(common_stacks) => {
             println!("Common stacks: {:?}", common_stacks);

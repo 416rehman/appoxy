@@ -1,5 +1,4 @@
 use rocket::serde::{Deserialize, Serialize};
-use crate::utility::stack::detect_common_stacks;
 use crate::models::builder;
 use crate::models::buildpack::Buildpack;
 use crate::models::group::Group;
@@ -18,8 +17,8 @@ pub struct Droid {
 }
 
 impl Droid {
-    pub async fn detect_common_stacks(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-        detect_common_stacks(&self.buildpacks).await
+    pub async fn detect_common_stacks(&mut self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        Stack::detect_common_stacks(&mut self.buildpacks).await
     }
 
     pub async fn create_builder(&self) -> Result<builder::Builder, String> {
@@ -30,7 +29,7 @@ impl Droid {
             order: self.buildpacks.iter().map(|buildpack| Order{
                 group: vec![Group {
                     id: buildpack.id.clone().unwrap(),
-                    optional:
+                    optional: buildpack.optional
                 }]
             }).collect::<Vec<Order>>()
         };

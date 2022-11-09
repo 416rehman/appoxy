@@ -5,7 +5,7 @@ use rocket::serde::{Deserialize, Serialize};
 #[serde(crate = "rocket::serde")]
 pub struct Group {
     pub id: String,
-    pub optional: bool,
+    pub optional: Option<bool>,
 }
 
 // [[order.group]]

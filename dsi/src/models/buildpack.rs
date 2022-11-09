@@ -1,3 +1,4 @@
+use rocket::futures::future::err;
 use rocket::serde::{Deserialize, Serialize};
 use crate::utility::buildpack::fetch_buildpack_info;
 
@@ -18,6 +19,18 @@ pub struct Buildpack {
 // uri = "samples/buildpacks/hello-processes"
 
 impl Buildpack {
+    pub fn from_uri(uri: &str) -> Result<Buildpack, Box<dyn std::error::Error>> {
+        let buildpack = Buildpack {
+            uri: uri.to_string(),
+            ..Default::default()
+        };
+
+        Ok(buildpack)
+    }
+
+
+    /// Fetches the buildpack info from the registry, and sets the version and compatible stacks fields.
+    /// If no version is found or no compatible stacks are found, then an error is returned.
     pub async fn validate(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let data = fetch_buildpack_info(
             &self.uri.replace("urn:cnb:registry:", "")
@@ -55,13 +68,19 @@ impl Buildpack {
             None => return Err("Failed to fetch versions info from registry".into())
         }
 
-        // validate the stack
+        // data["latest"]["stacks"] as array of strings
         match data["latest"]["stacks"].as_array() {
-            Some(stacks) => stacks,
+            Some(stacks) => {
+                self.compatible_stacks = Some(stacks.iter().map(|s| {
+                    match s.as_str() {  // as_str() removes the quotes from the json string value
+                        Some(s) => s.to_string(),   // convert &str to String
+                        None => "".to_string()  // if s.as_str() is None, return an empty string
+                    }
+                }).collect());
+            }
             None => return Err(format!("Buildpack {} does not have any compatible stacks", self.uri).into())
-        };
+        }
 
-        println!("Buildpack {} is valid", self.uri);
         Ok(())
     }
 }
