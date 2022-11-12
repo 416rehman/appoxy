@@ -2,6 +2,7 @@ use rocket::http::Status;
 use rocket::response::status;
 use rocket::serde::json::{Json, Value};
 use rocket::serde::json::serde_json::json;
+use crate::models::builder::Builder;
 use crate::models::droid::Droid;
 
 #[post("/droids", data = "<droid>")]
@@ -17,7 +18,7 @@ pub async fn new(mut droid: Json<Droid>) -> status::Custom<Value> {
                     }
                 }));
             }
-        },
+        }
         Err(e) => {
             println!("Error: {:?}", e);
             return status::Custom(Status::BadRequest, json!({
@@ -25,17 +26,17 @@ pub async fn new(mut droid: Json<Droid>) -> status::Custom<Value> {
                 "data": {
                     "error": e.to_string()
                 }
-            }))
+            }));
         }
     };
 
-    match droid.create_builder().await {
+    let builder: Builder = match droid.create_builder().await {
         Ok(builder) => {
             println!("Saving Builder: {:?}", builder);
             match builder.save(droid.app_id.to_string()) {
                 Ok(path) => {
                     println!("Builder dumped to file: {:?}", path);
-                },
+                }
                 Err(e) => {
                     println!("Error: {:?}", e);
                     return status::Custom(Status::BadRequest, json!({
@@ -43,22 +44,40 @@ pub async fn new(mut droid: Json<Droid>) -> status::Custom<Value> {
                         "data": {
                             "error": e.to_string()
                         }
-                    }))
+                    }));
                 }
-            }
+            };
+            builder
+        }
+        Err(error) => {
+            println!("Error: {:?}", error);
+            return status::Custom(Status::BadRequest, json!({
+                "message": "Error while creating builder",
+                "data": {
+                    "error": error.to_string()
+                }
+            }));
+        }
+    };
+
+    match builder.run_create(droid.app_id).await {
+        Ok(child) => unsafe {
+            let child_id = child.id();
+            crate::tasklist::CHILDREN.push(child);
+            println!("Droid created");
             status::Custom(Status::Ok, json!({
                 "message": "Droid created",
                 "data": {
-                    "builder": builder
+                    "id": child_id
                 }
             }))
-        },
+        }
         Err(error) => {
-            println!("Error creating builder: {}", error);
-            status::Custom(Status::InternalServerError, json!({
-                "message": "Error creating builder",
+            println!("Error: {:?}", error);
+            status::Custom(Status::BadRequest, json!({
+                "message": "Error while creating droid",
                 "data": {
-                    "error": error
+                    "error": error.to_string()
                 }
             }))
         }

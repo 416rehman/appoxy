@@ -5,7 +5,9 @@ use crate::models::buildpack::Buildpack;
 #[serde(crate = "rocket::serde")]
 pub struct Stack {
     pub id: String,
+    #[serde(rename = "build-image")]
     pub build_image: String,
+    #[serde(rename = "run-image")]
     pub run_image: String,
 }
 

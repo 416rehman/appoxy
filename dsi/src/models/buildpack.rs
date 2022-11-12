@@ -6,7 +6,6 @@ use crate::utility::buildpack::fetch_buildpack_info;
 #[serde(rename_all = "camelCase")]
 #[serde(crate = "rocket::serde")]
 pub struct Buildpack {
-    pub id: Option<String>,
     pub uri: String,
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,6 +27,9 @@ impl Buildpack {
         Ok(buildpack)
     }
 
+    pub fn id(&self) -> Result<String, Box<dyn std::error::Error>> {
+        Ok(self.uri.split('@').collect::<Vec<&str>>()[0].split(':').collect::<Vec<&str>>().last().unwrap().to_string())
+    }
 
     /// Fetches the buildpack info from the registry, and sets the version and compatible stacks fields.
     /// If no version is found or no compatible stacks are found, then an error is returned.
@@ -48,7 +50,7 @@ impl Buildpack {
                     let mut found = false;
                     // check if the provided version is in the list of versions
                     for v in versions {
-                        if v["version"] == version {
+                        if v["version"] == version.as_str() {
                             found = true;
                             break;
                         }
@@ -57,11 +59,17 @@ impl Buildpack {
                     if !found {
                         println!("Version {} not found for buildpack {}", version, self.uri);
                         println!("Setting version to latest version");
-                        self.version = Some(versions[0]["version"].to_string());
+                        self.version = Some(match versions[0]["version"].as_str() {
+                            Some(v) => v.to_string(),
+                            None => return Err("No version found".into())
+                        });
                     }
                 } else {
                     // if self.version is not provided, set it to the latest version
-                    self.version = Some(versions[0]["version"].to_string());
+                    self.version = Some(match versions[0]["version"].as_str() {
+                        Some(v) => v.to_string(),
+                        None => return Err("No version found".into())
+                    });
                 }
                 println!("Using version {}", self.version.clone().unwrap());
             }

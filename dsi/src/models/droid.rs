@@ -28,7 +28,10 @@ impl Droid {
             description: Some("Created by Droid".to_string()),
             order: self.buildpacks.iter().map(|buildpack| Order{
                 group: vec![Group {
-                    id: buildpack.id.clone(),
+                    id: match buildpack.id() {
+                        Ok(x) => x,
+                        Err(_) => todo!(),
+                    },
                     optional: buildpack.optional
                 }]
             }).collect::<Vec<Order>>()
