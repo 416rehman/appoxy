@@ -1,6 +1,5 @@
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
-use std::thread;
+use std::io::Write;
 use rocket::serde::{Deserialize, Serialize};
 use crate::models::buildpack::Buildpack;
 use crate::models::order::Order;
@@ -28,31 +27,15 @@ impl Builder {
     }
 
     // Runs "pack builder create <app_id>:<stack.id> --config /app/<app_id>/builder.toml" and return handle to the process
-    pub async fn run_create<T: 'static + Send + Fn(&str)>(&self, app_id: i64, cb: T) {
-        match std::process::Command::new("pack")
+    pub async fn run_create(&self, app_id: i64) -> Result<tokio::process::Child, std::io::Error> {
+        tokio::process::Command::new("pack")
             .arg("builder")
             .arg("create")
             .arg(format!("{}:{}", app_id, self.stack.id))
             .arg("--config")
-            .arg(format!("/app/{}/builder.toml", app_id))
+            .arg(format!("./dumps/{}/builder.toml", app_id))
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
-            .spawn() {
-            Ok(child) => {
-                thread::spawn(move || {
-                    let mut f = BufReader::new(child.stdout.unwrap());
-                    loop {
-                        let mut buf = String::new();
-                        match f.read_line(&mut buf) {
-                            Ok(_) => {
-                                cb(buf.as_str());
-                            }
-                            Err(e) => println!("an error!: {:?}", e),
-                        }
-                    }
-                });
-            }
-            Err(e) => cb(e.to_string().as_str()),
-        }
+            .spawn()
     }
 }

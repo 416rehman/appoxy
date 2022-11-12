@@ -1,32 +1,37 @@
-use rocket::http::Status;
-use rocket::response::status;
-use rocket::serde::json::{Json, Value};
-use rocket::serde::json::serde_json::json;
+use std::io;
+use std::io::{Chain, Error, ErrorKind};
+use rocket::futures::stream::select;
+use rocket::serde::json::{Json};
+use rocket::response::stream::ReaderStream;
+use rocket::tokio::io::BufReader;
+use tokio::io::AsyncReadExt;
+use tokio::process::{ChildStderr, ChildStdout};
 use crate::models::builder::Builder;
 use crate::models::droid::Droid;
 
 #[post("/droids", data = "<droid>")]
-pub async fn new(mut droid: Json<Droid>) -> status::Custom<Value> {
+pub async fn new(mut droid: Json<Droid>) // -> status::Custom<Value> { // returns a chained stream of stdout and stderr
+                                            -> io::Result<ReaderStream![BufReader<tokio::process::ChildStdout>]> {
     match droid.detect_common_stacks().await {
         Ok(common_stacks) => {
             println!("Common stacks detected: {:?}", common_stacks);
-            if !common_stacks.contains(&droid.stack.id) {
-                return status::Custom(Status::BadRequest, json!({
-                    "message": "The stack provided is not compatible with the buildpacks provided",
-                    "data": {
-                        "compatible_stacks": common_stacks
-                    }
-                }));
-            }
+            // if !common_stacks.contains(&droid.stack.id) {
+            //     return status::Custom(Status::BadRequest, json!({
+            //         "message": "The stack provided is not compatible with the buildpacks provided",
+            //         "data": {
+            //             "compatible_stacks": common_stacks
+            //         }
+            //     }));
+            // }
         }
         Err(e) => {
             println!("Error: {:?}", e);
-            return status::Custom(Status::BadRequest, json!({
-                "message": "Error while detecting common stacks",
-                "data": {
-                    "error": e.to_string()
-                }
-            }));
+            // return status::Custom(Status::BadRequest, json!({
+            //     "message": "Error while detecting common stacks",
+            //     "data": {
+            //         "error": e.to_string()
+            //     }
+            // }));
         }
     };
 
@@ -39,47 +44,67 @@ pub async fn new(mut droid: Json<Droid>) -> status::Custom<Value> {
                 }
                 Err(e) => {
                     println!("Error: {:?}", e);
-                    return status::Custom(Status::BadRequest, json!({
-                        "message": "Error while dumping builder to file",
-                        "data": {
-                            "error": e.to_string()
-                        }
-                    }));
+                    // return status::Custom(Status::BadRequest, json!({
+                    //     "message": "Error while dumping builder to file",
+                    //     "data": {
+                    //         "error": e.to_string()
+                    //     }
+                    // }));
                 }
             };
             builder
         }
         Err(error) => {
-            println!("Error: {:?}", error);
-            return status::Custom(Status::BadRequest, json!({
-                "message": "Error while creating builder",
-                "data": {
-                    "error": error.to_string()
-                }
-            }));
+            panic!("Error: {:?}", error);
+            // println!("Error: {:?}", error);
+            // return status::Custom(Status::BadRequest, json!({
+            //     "message": "Error while creating builder",
+            //     "data": {
+            //         "error": error.to_string()
+            //     }
+            // }));
         }
     };
 
+    // match builder.run_create(droid.app_id).await {
+    //     Ok(child) => unsafe {
+    //         let child_id = child.id();
+    //         crate::tasklist::CHILDREN.push(child);
+    //         println!("Droid created");
+    //         status::Custom(Status::Ok, json!({
+    //             "message": "Droid created",
+    //             "data": {
+    //                 "id": child_id
+    //             }
+    //         }))
+    //     }
+    //     Err(error) => {
+    //         println!("Error: {:?}", error);
+    //         status::Custom(Status::BadRequest, json!({
+    //             "message": "Error while creating droid",
+    //             "data": {
+    //                 "error": error.to_string()
+    //             }
+    //         }))
+    //     }
+    // }
+
     match builder.run_create(droid.app_id).await {
-        Ok(child) => unsafe {
-            let child_id = child.id();
-            crate::tasklist::CHILDREN.push(child);
-            println!("Droid created");
-            status::Custom(Status::Ok, json!({
-                "message": "Droid created",
-                "data": {
-                    "id": child_id
-                }
-            }))
+        Ok(mut child) => {
+            let stdout = child.stdout
+                .take()
+                .ok_or_else(|| Error::new(ErrorKind::Other,"Could not capture standard output."))?;
+            let stderr = child.stderr
+                .take()
+                .ok_or_else(|| Error::new(ErrorKind::Other,"Could not capture standard error."))?;
+            //merge stdout and stderr
+            let stdout = BufReader::new(stdout);
+            let stderr = BufReader::new(stderr);
+            Ok(ReaderStream::one(stdout))
         }
         Err(error) => {
             println!("Error: {:?}", error);
-            status::Custom(Status::BadRequest, json!({
-                "message": "Error while creating droid",
-                "data": {
-                    "error": error.to_string()
-                }
-            }))
+            Err(error)
         }
     }
 }
