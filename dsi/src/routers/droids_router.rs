@@ -1,11 +1,8 @@
 use std::io;
-use std::io::{Chain, Error, ErrorKind};
-use rocket::futures::stream::select;
+use std::io::{Error, ErrorKind};
 use rocket::serde::json::{Json};
 use rocket::response::stream::ReaderStream;
 use rocket::tokio::io::BufReader;
-use tokio::io::AsyncReadExt;
-use tokio::process::{ChildStderr, ChildStdout};
 use crate::models::builder::Builder;
 use crate::models::droid::Droid;
 
@@ -94,12 +91,8 @@ pub async fn new(mut droid: Json<Droid>) // -> status::Custom<Value> { // return
             let stdout = child.stdout
                 .take()
                 .ok_or_else(|| Error::new(ErrorKind::Other,"Could not capture standard output."))?;
-            let stderr = child.stderr
-                .take()
-                .ok_or_else(|| Error::new(ErrorKind::Other,"Could not capture standard error."))?;
-            //merge stdout and stderr
+
             let stdout = BufReader::new(stdout);
-            let stderr = BufReader::new(stderr);
             Ok(ReaderStream::one(stdout))
         }
         Err(error) => {

@@ -6,17 +6,18 @@ use rocket::serde::json::serde_json;
 
 #[test]
 fn droid_creation() {
-    println!("Sending POST data with buildpacks [\"heroku/ruby\", \"heroku/nodejs\"] to /droids should return 200 OK and message \"Droid created\"");
+    println!("Sending POST data with buildpacks [\"heroku/ruby\", \"heroku/nodejs\"] to /droids should return 200 OK and stream the output of the buildpacks");
 
     let client = Client::tracked(rocket()).expect("valid rocket instance");
     let response = client.post(uri!(super::routers::droids_router::new))
-        .body(r#"{"app_id": 1,"repo": "github.com/rocket","branch": "main","buildpacks": [{"uri": "heroku/nodejs"}],"env": ["FOO=bar", "BAZ=qux"],"stack": {"id": "heroku-18","build_image": "heroku/buildpacks:20","run_image": "heroku/pack:20"}}"#)
+        .body(r#"{"app_id": 1,"repo": "github.com/rocket","branch": "main","buildpacks": [{"uri": "heroku/nodejs"}],"env": ["FOO=bar", "BAZ=qux"],"stack": {"id": "heroku-18","build-image": "heroku/buildpacks:20","run-image": "heroku/pack:20"}}"#)
     .dispatch();
-    assert_eq!(response.status(), Status::Ok);
 
-    let response = response.into_string().unwrap();
-    let response_data: serde_json::Value = serde_json::from_str(&response).unwrap();
-    assert_eq!(response_data["message"], "Droid created");
+    assert_eq!(response.status(), Status::Ok);
+    //
+    // let response = response.into_string().unwrap();
+    // let response_data: serde_json::Value = serde_json::from_str(&response).unwrap();
+    // assert_eq!(response_data["message"], "Droid created");
 }
 
 #[test]
