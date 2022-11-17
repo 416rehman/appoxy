@@ -5,7 +5,7 @@ use rocket::serde::json::serde_json::json;
 use crate::models::buildpack::Buildpack;
 use crate::models::stack::Stack;
 
-#[post("/stacks/suggest", data = "<buildpacks>")]
+#[post("/suggest", data = "<buildpacks>")]
 pub async fn common(mut buildpacks: Json<Vec<Buildpack>>) -> status::Custom<Value> {
     match Stack::detect_common_stacks(&mut buildpacks).await {
         Ok(common_stacks) => status::Custom(Status::Ok, json!({

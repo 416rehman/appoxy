@@ -1,6 +1,7 @@
 #[macro_use] extern crate rocket;
 use std::io;
 use std::io::{Error, ErrorKind};
+use std::sync::Mutex;
 use rocket::response::stream::ReaderStream;
 use rocket::tokio::io::BufReader;
 
@@ -8,6 +9,10 @@ use rocket::tokio::io::BufReader;
 mod routers;
 mod models;
 mod utility;
+
+struct MyConfig {
+    user_val: Mutex<String>,
+}
 
 #[get("/")]
 fn index() -> &'static str {
@@ -30,7 +35,26 @@ fn stream() -> io::Result<ReaderStream![BufReader<tokio::process::ChildStdout>]>
     Ok(ReaderStream::one(reader))
 }
 
-#[launch]
-fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, routers::droids_router::new, routers::stacks_router::common, stream])
+#[get("/state?<name>")]
+fn state(name: String, config: &rocket::State<MyConfig>) -> String {
+    let myconfig: &MyConfig = config.inner();
+    let mut lock = myconfig.user_val.lock().unwrap();
+    let old_val = lock.to_string();
+    *lock = name;
+    format!("Hello, {}! I remember you! You were {}", lock.to_string(), old_val)
+}
+
+#[rocket::main]
+async fn main() -> Result<(), rocket::Error> {
+    let _rocket = rocket::build()
+        .manage(MyConfig {
+            user_val: Mutex::new("default".to_string()),
+        })
+        .mount("/", routes![index, stream, state])
+        .mount("/droids", routes![routers::droids_router::new])
+        .mount("/stacks", routes![routers::stacks_router::common])
+        .launch()
+        .await?;
+
+    Ok(())
 }

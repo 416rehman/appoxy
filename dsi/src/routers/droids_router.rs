@@ -6,7 +6,7 @@ use rocket::tokio::io::BufReader;
 use crate::models::builder::Builder;
 use crate::models::droid::Droid;
 
-#[post("/droids", data = "<droid>")]
+#[post("/", data = "<droid>")]
 pub async fn new(mut droid: Json<Droid>) // -> status::Custom<Value> { // returns a chained stream of stdout and stderr
                                             -> io::Result<ReaderStream![BufReader<tokio::process::ChildStdout>]> {
     match droid.detect_common_stacks().await {

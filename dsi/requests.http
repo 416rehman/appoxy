@@ -1,0 +1,4 @@
+GET http://localhost:8000/state?name=California HTTP/1.1
+Accept: application/json
+
+###
